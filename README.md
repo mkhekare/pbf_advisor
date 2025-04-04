@@ -2,7 +2,10 @@
 
 A simple, interactive Streamlit web app that helps you manage your personal finances, calculate monthly savings, and get smart, AI-powered advice on budgeting, saving, and investing. Powered by **Google Gemini**.
 
+https://pbfadvisor.streamlit.app/
+
 ---
+
 
 ## 🚀 Features
 
