@@ -4,21 +4,27 @@ import os
 import pandas as pd
 import google.generativeai as genai
 
-# Load .env file from symlink (../env/.env)
-load_dotenv()
+# --- Load API Key ---
+load_dotenv()  # Load .env if exists (for local dev)
+
+# Prefer Streamlit secret if running on Cloud
+GOOGLE_API_KEY = st.secrets.get("GOOGLE_API_KEY", os.getenv("GOOGLE-API-KEY"))
+
+# Exit gracefully if API key is missing
+if not GOOGLE_API_KEY:
+    st.error("🚫 Google API key not found. Please set it in .env or Streamlit secrets.")
+    st.stop()
 
 # Configure Gemini API
-genai.configure(api_key=os.getenv("GOOGLE-API-KEY"))
+genai.configure(api_key=GOOGLE_API_KEY)
 
-# Page Title
+# --- Page Layout ---
 st.header("💰 Personal Finance Advisor 📊", divider="green")
 
-# User Input
 user_input = st.text_input("Hi! I'm your Personal Finance Assistant 🧠. Ask me anything related to budgeting, saving, investing, or personal finance.")
-
 submit = st.button("Submit")
 
-# --- Sidebar: Monthly Budget Planner ---
+# --- Sidebar Budget Calculator ---
 st.sidebar.subheader("📆 Monthly Budget Planner")
 income = st.sidebar.text_input("Monthly Income (₹):", value="0")
 expenses = st.sidebar.text_input("Monthly Expenses (₹):", value="0")
@@ -28,30 +34,26 @@ try:
     expenses = float(expenses)
     savings = income - expenses
     st.sidebar.write(f"💵 Estimated Savings: ₹{savings:,.2f}")
-
     if income > 0:
         savings_ratio = (savings / income) * 100
         st.sidebar.write(f"📈 Savings Rate: {savings_ratio:.2f}%")
 except:
     st.sidebar.write("⚠️ Please enter valid numbers.")
 
-# Suggested Budget Allocation
-finance_tips = """
+st.sidebar.markdown("""
 **Suggested Allocation (50/30/20 Rule):**
 - **50% Needs:** Rent, groceries, utilities  
 - **30% Wants:** Dining out, entertainment  
 - **20% Savings & Investments:** FD, SIPs, stocks  
 
 🧾 Track your expenses and stick to a plan!
-"""
-st.sidebar.markdown(finance_tips)
+""")
 
-# --- Gemini AI Chat Function ---
+# --- Gemini API Call ---
 def get_finance_response(text_input):
     try:
         model = genai.GenerativeModel("gemini-1.5-pro")
-        with st.spinner("💬 Generating your personalized advice..."):
-            prompt = '''I want you to act as a Financial Advisor and only respond to topics on:
+        prompt = '''I want you to act as a Financial Advisor and only respond to topics on:
 - Budgeting
 - Saving and Investments
 - Retirement Planning
@@ -67,12 +69,13 @@ If the user asks for stock tips, say:
 
 So here's the user's question: 
 '''
+        with st.spinner("💬 Generating your personalized advice..."):
             response = model.generate_content(prompt + text_input)
-            return response.text
+        return response.text
     except Exception as e:
         return f"❌ Error: {str(e)}"
 
-# --- Display Response ---
+# --- Handle Submission ---
 if submit and user_input.strip() != "":
     response = get_finance_response(user_input)
     st.subheader("🧠 The :orange[Response] is:")
