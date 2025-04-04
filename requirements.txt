@@ -2,5 +2,6 @@ langchain
 streamlit
 langchain-google-genai
 python-dotenv
-google-generativeai
 pandas
+google-generativeai>=0.8.4
+
