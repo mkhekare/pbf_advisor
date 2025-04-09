@@ -1,92 +1,56 @@
-/* Main Styles */
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    color: #333;
-}
-
-/* Header Styles */
 .header {
-    text-align: center;
+    padding: 2rem 0;
+    border-bottom: 2px solid #2ecc71;
     margin-bottom: 2rem;
 }
 
-.header h1 {
-    font-size: 2.5rem;
-    color: #2c3e50;
-    margin-bottom: 0.5rem;
+.dashboard-header {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
 }
 
-.subtitle {
-    font-size: 1.1rem;
-    color: #7f8c8d;
-    font-style: italic;
-}
-
-/* Container Styles */
-.info-box {
-    background-color: #f8f9fa;
-    border-left: 4px solid #3498db;
-    padding: 1rem;
-    margin-bottom: 1.5rem;
-    border-radius: 0 0.5rem 0.5rem 0;
-}
-
-/* Button Styles */
-.stButton button {
-    background-color: #3498db;
-    color: white;
-    border-radius: 5px;
-    border: none;
-    padding: 0.5rem 1rem;
-    transition: background-color 0.3s;
-}
-
-.stButton button:hover {
-    background-color: #2980b9;
-}
-
-/* Metric Cards */
-.stMetric {
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
+.metric-card {
+    background: #f8f9fa;
+    border-radius: 10px;
     padding: 1rem;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-/* Footer */
-.footer {
-    font-size: 0.8rem;
-    text-align: center;
-    color: #7f8c8d;
-    margin-top: 2rem;
+.metric-card h3 {
+    color: #2c3e50;
+    margin: 0 0 0.5rem 0;
+    font-size: 1.1rem;
 }
 
-/* Chat Message Styling */
-.stChatMessage {
-    border-radius: 10px;
+.metric-card p {
+    font-size: 1.4rem;
+    margin: 0;
+    color: #27ae60;
+    font-weight: bold;
+}
+
+.info-box {
+    background: #e8f5e9;
     padding: 1rem;
-    margin: 0.5rem 0;
-}
-
-.stChatMessage.user {
-    background-color: #e3f2fd;
-}
-
-.stChatMessage.assistant {
-    background-color: #f5f5f5;
-}
-
-/* Tab Styling */
-.stTabs [role="tablist"] {
+    border-radius: 8px;
     margin-bottom: 1rem;
 }
 
-.stTabs [role="tab"] {
-    padding: 0.5rem 1rem;
-    border-radius: 5px 5px 0 0;
+.footer {
+    text-align: center;
+    padding: 1rem;
+    color: #7f8c8d;
+    font-size: 0.9rem;
 }
 
-.stTabs [aria-selected="true"] {
-    background-color: #3498db;
-    color: white;
+@media (max-width: 768px) {
+    .stContainer > div {
+        flex-direction: column;
+    }
+    .metric-card {
+        width: 100%;
+        margin: 5px 0;
+    }
 }
