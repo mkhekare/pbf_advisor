@@ -363,27 +363,29 @@ def main():
         st.session_state.financial_data['expenses']
     )
     
-    # --- Dashboard Metrics ---
-    st.markdown(f"""
-    <div class="dashboard-header">
-        <div class="metric-card">
-            <h3>Net Worth</h3>
-            <p>{format_currency(total_investments + st.session_state.financial_data['savings'])}</p>
-        </div>
-        <div class="metric-card">
-            <h3>Savings Rate</h3>
-            <p>{savings_rate:.1f}%</p>
-        </div>
-        <div class="metric-card">
-            <h3>Investment Growth</h3>
-            <p>{((total_investments - sum(inv['amount'] for inv in st.session_state.financial_data['investments']))/sum(inv['amount'] for inv in st.session_state.financial_data['investments'])*100 if sum(inv['amount'] for inv in st.session_state.financial_data['investments']) > 0 else 0:.1f}%</p>
-        </div>
-        <div class="metric-card">
-            <h3>Monthly Cashflow</h3>
-            <p>{format_currency(savings)}</p>
-        </div>
+
+
+# Then in your dashboard metrics section:
+st.markdown(f"""
+<div class="dashboard-header">
+    <div class="metric-card">
+        <h3>Net Worth</h3>
+        <p>{format_currency(total_investments + st.session_state.financial_data['savings'])}</p>
     </div>
-    """, unsafe_allow_html=True)
+    <div class="metric-card">
+        <h3>Savings Rate</h3>
+        <p>{savings_rate:.1f}%</p>
+    </div>
+    <div class="metric-card">
+        <h3>Investment Growth</h3>
+        <p>{investment_growth:.1f}%</p>
+    </div>
+    <div class="metric-card">
+        <h3>Monthly Cashflow</h3>
+        <p>{format_currency(savings)}</p>
+    </div>
+</div>
+""", unsafe_allow_html=True)
     
     # --- Navigation Tabs ---
     tabs = st.tabs([
@@ -685,6 +687,12 @@ def main():
                 total_invested = sum(inv['amount'] for inv in st.session_state.financial_data['investments'])
                 total_current = sum(inv['current_value'] for inv in st.session_state.financial_data['investments'])
                 overall_return = ((total_current - total_invested) / total_invested * 100) if total_invested > 0 else 0
+
+                # Calculate investment growth percentage
+                investment_growth = 0.0
+                total_invested = sum(inv['amount'] for inv in st.session_state.financial_data['investments'])
+                if total_invested > 0:
+                investment_growth = ((total_investments - total_invested) / total_invested) * 100
                 
                 # Display metrics
                 cols = st.columns(3)
