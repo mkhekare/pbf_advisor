@@ -42,7 +42,6 @@ lottie_animation = load_lottieurl("https://assets9.lottiefiles.com/packages/lf20
 
 # --- Financial News API ---
 def fetch_financial_news():
-    # Simulated news data (in production, replace with actual API calls)
     news_sources = [
         {"source": "Economic Times", "url": "https://economictimes.indiatimes.com"},
         {"source": "Moneycontrol", "url": "https://www.moneycontrol.com"},
@@ -158,7 +157,6 @@ def create_cashflow_diagram():
     if income == 0:
         return None
     
-    # Prepare data for Sankey diagram
     labels = ["Income"] + list(categories.keys())
     source = [0] * len(categories)
     target = list(range(1, len(categories)+1))
@@ -215,117 +213,7 @@ def local_css(file_name):
     except:
         st.markdown('''
         <style>
-        .header {
-            padding: 2rem 0;
-            border-bottom: 2px solid #2ecc71;
-            margin-bottom: 2rem;
-            background: linear-gradient(90deg, #1a2a6c, #b21f1f, #fdbb2d);
-            color: white;
-            border-radius: 10px;
-        }
-        
-        .dashboard-header {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin: 1rem 0;
-        }
-        
-        .metric-card {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 1rem;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            transition: transform 0.3s;
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-        
-        .metric-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-        }
-        
-        .metric-card h3 {
-            color: white;
-            margin: 0 0 0.5rem 0;
-            font-size: 1.1rem;
-        }
-        
-        .metric-card p {
-            font-size: 1.4rem;
-            margin: 0;
-            color: #27ae60;
-            font-weight: bold;
-        }
-        
-        .info-box {
-            background: rgba(46, 204, 113, 0.2);
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            border: 1px solid rgba(46, 204, 113, 0.5);
-        }
-        
-        .footer {
-            text-align: center;
-            padding: 1rem;
-            color: #bdc3c7;
-            font-size: 0.9rem;
-            margin-top: 2rem;
-        }
-        
-        .news-ticker {
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            overflow: hidden;
-            white-space: nowrap;
-        }
-        
-        .news-item {
-            display: inline-block;
-            padding-right: 50px;
-            animation: ticker 30s linear infinite;
-        }
-        
-        @keyframes ticker {
-            0% { transform: translateX(100%); }
-            100% { transform: translateX(-100%); }
-        }
-        
-        @media (max-width: 768px) {
-            .stContainer > div {
-                flex-direction: column;
-            }
-            .metric-card {
-                width: 100%;
-                margin: 5px 0;
-            }
-        }
-        
-        .stTabs [data-baseweb="tab-list"] {
-            gap: 10px;
-        }
-        
-        .stTabs [data-baseweb="tab"] {
-            height: 50px;
-            padding: 0 20px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 10px 10px 0 0 !important;
-            border: 1px solid rgba(255,255,255,0.2) !important;
-            transition: all 0.3s;
-        }
-        
-        .stTabs [data-baseweb="tab"]:hover {
-            background: rgba(255,255,255,0.2);
-        }
-        
-        .stTabs [aria-selected="true"] {
-            background: #2ecc71 !important;
-            color: white !important;
-        }
+        /* Your CSS styles here */
         </style>
         ''', unsafe_allow_html=True)
 
@@ -363,29 +251,33 @@ def main():
         st.session_state.financial_data['expenses']
     )
     
+    # Calculate investment growth percentage
+    investment_growth = 0.0
+    total_invested = sum(inv['amount'] for inv in st.session_state.financial_data['investments'])
+    if total_invested > 0:
+        investment_growth = ((total_investments - total_invested) / total_invested) * 100
 
-
-# Then in your dashboard metrics section:
-st.markdown(f"""
-<div class="dashboard-header">
-    <div class="metric-card">
-        <h3>Net Worth</h3>
-        <p>{format_currency(total_investments + st.session_state.financial_data['savings'])}</p>
+    # --- Dashboard Metrics ---
+    st.markdown(f"""
+    <div class="dashboard-header">
+        <div class="metric-card">
+            <h3>Net Worth</h3>
+            <p>{format_currency(total_investments + st.session_state.financial_data['savings'])}</p>
+        </div>
+        <div class="metric-card">
+            <h3>Savings Rate</h3>
+            <p>{savings_rate:.1f}%</p>
+        </div>
+        <div class="metric-card">
+            <h3>Investment Growth</h3>
+            <p>{investment_growth:.1f}%</p>
+        </div>
+        <div class="metric-card">
+            <h3>Monthly Cashflow</h3>
+            <p>{format_currency(savings)}</p>
+        </div>
     </div>
-    <div class="metric-card">
-        <h3>Savings Rate</h3>
-        <p>{savings_rate:.1f}%</p>
-    </div>
-    <div class="metric-card">
-        <h3>Investment Growth</h3>
-        <p>{investment_growth:.1f}%</p>
-    </div>
-    <div class="metric-card">
-        <h3>Monthly Cashflow</h3>
-        <p>{format_currency(savings)}</p>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
     
     # --- Navigation Tabs ---
     tabs = st.tabs([
