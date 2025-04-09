@@ -1,0 +1,92 @@
+/* Main Styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
+}
+
+/* Header Styles */
+.header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.header h1 {
+    font-size: 2.5rem;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.subtitle {
+    font-size: 1.1rem;
+    color: #7f8c8d;
+    font-style: italic;
+}
+
+/* Container Styles */
+.info-box {
+    background-color: #f8f9fa;
+    border-left: 4px solid #3498db;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    border-radius: 0 0.5rem 0.5rem 0;
+}
+
+/* Button Styles */
+.stButton button {
+    background-color: #3498db;
+    color: white;
+    border-radius: 5px;
+    border: none;
+    padding: 0.5rem 1rem;
+    transition: background-color 0.3s;
+}
+
+.stButton button:hover {
+    background-color: #2980b9;
+}
+
+/* Metric Cards */
+.stMetric {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Footer */
+.footer {
+    font-size: 0.8rem;
+    text-align: center;
+    color: #7f8c8d;
+    margin-top: 2rem;
+}
+
+/* Chat Message Styling */
+.stChatMessage {
+    border-radius: 10px;
+    padding: 1rem;
+    margin: 0.5rem 0;
+}
+
+.stChatMessage.user {
+    background-color: #e3f2fd;
+}
+
+.stChatMessage.assistant {
+    background-color: #f5f5f5;
+}
+
+/* Tab Styling */
+.stTabs [role="tablist"] {
+    margin-bottom: 1rem;
+}
+
+.stTabs [role="tab"] {
+    padding: 0.5rem 1rem;
+    border-radius: 5px 5px 0 0;
+}
+
+.stTabs [aria-selected="true"] {
+    background-color: #3498db;
+    color: white;
+}
