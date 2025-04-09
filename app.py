@@ -108,7 +108,68 @@ def fetch_latest_financial_news():
         news_items.extend(recent_headlines)
     
     return random.sample(news_items, min(30, len(news_items)))
+# --- News Ticker Display Function ---
+def display_news_ticker():
+    """Display the scrolling news ticker"""
+    st.markdown("""
+    <style>
+    .news-ticker {
+        background: #2c3e50;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        margin-bottom: 1rem;
+        overflow: hidden;
+        white-space: nowrap;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .news-container {
+        display: inline-block;
+        padding-left: 100%;
+        animation: ticker 30s linear infinite;
+    }
+    
+    .news-item {
+        display: inline-block;
+        padding-right: 2rem;
+        font-size: 0.9rem;
+    }
+    
+    @keyframes ticker {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-100%); }
+    }
+    
+    .news-ticker:hover .news-container {
+        animation-play-state: paused;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
+    if 'news_ticker' not in st.session_state:
+        st.session_state.news_ticker = fetch_latest_financial_news()
+
+    ticker_html = """
+    <div class="news-ticker">
+        <div class="news-container">
+            {news_items}
+        </div>
+    </div>
+    """.format(
+        news_items=''.join([f'<span class="news-item">• {html.escape(news)}</span>' 
+                          for news in st.session_state.news_ticker])
+    )
+    
+    st.markdown(ticker_html, unsafe_allow_html=True)
+
+    if st.button("🔄 Refresh News", key="refresh_news"):
+        st.session_state.news_ticker = fetch_latest_financial_news()
+        st.rerun()
+
+# --- In your main app ---
+def main():
+    display_news_ticker()
 # --- Session State ---
 if 'financial_data' not in st.session_state:
     st.session_state.financial_data = {
