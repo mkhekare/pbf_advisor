@@ -13,3 +13,4 @@ plaid-python
 requests
 beautifulsoup4
 streamlit-lottie
+feedparser
