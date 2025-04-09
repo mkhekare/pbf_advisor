@@ -387,19 +387,21 @@ def local_css(file_name):
 
 local_css("style.css")  
 
-# --- Main App ---  
-ticker_html = """  
-<div class="news-ticker">  
-    <div class="news-container">  
-        {}  
-    </div>  
-</div>  
-""".format(' • '.join([f'<span class="news-item">{html.escape(news)}</span>' for news in st.session_state.news_ticker]))  
+# --- Main App ---
+def main():
+    # --- Enhanced News Ticker ---
+    ticker_html = """
+    <div class="news-ticker">
+        <div class="news-container">
+            {}
+        </div>
+    </div>
+    """.format(' • '.join([f'<span class="news-item">{html.escape(news)}</span>' for news in st.session_state.news_ticker]))
 
-st.markdown(ticker_html, unsafe_allow_html=True)  
-
-# --- Header Section ---  
-col1, col2 = st.columns([3, 1])
+    st.markdown(ticker_html, unsafe_allow_html=True)
+    
+    # --- Header Section ---
+    col1, col2 = st.columns([3, 1])
     with col1:
         st.markdown("""
         <div class="header">
@@ -407,6 +409,7 @@ col1, col2 = st.columns([3, 1])
             <p class="subtitle" style="color:#666;">Your Intelligent Personal Finance Ecosystem</p>
         </div>
         """, unsafe_allow_html=True)
+    
     with col2:
         if lottie_animation:
             st_lottie(lottie_animation, height=100, key="header-animation")
