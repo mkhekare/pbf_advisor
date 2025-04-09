@@ -397,8 +397,8 @@ ticker_html = """
 """.format(' • '.join([f'<span class="news-item">{html.escape(news)}</span>' for news in st.session_state.news_ticker]))
 
 st.markdown(ticker_html, unsafe_allow_html=True)
-    
-    # --- Header Section ---
+
+# --- Header Section ---
     col1, col2 = st.columns([3, 1])
     with col1:
         st.markdown("""
