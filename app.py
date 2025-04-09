@@ -680,9 +680,8 @@ def main():
                 # Visualization
                 growth_data = pd.DataFrame({
                     'Year': range(1, years+1),
-                    'Value': [monthly * (((1 + rate/100/12)**(y*12) - 1) / (rate/100/12) * (1 + rate/100/12) for y in range(1, years+1)]
-                })
-                st.area_chart(growth_data.set_index('Year'))
+                    'Value': [monthly * ((((1 + rate/100/12)**(y*12) - 1) / (rate/100/12)) * (1 + rate/100/12) for y in range(1, years+1)]
+                })            
             
             elif calc_type == "EMI Calculator":
                 principal = st.number_input("Loan Amount (₹)", 1000, 10000000, 1000000)
