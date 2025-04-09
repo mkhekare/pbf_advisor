@@ -5,6 +5,7 @@ import google.generativeai as genai
 from datetime import datetime, timedelta
 import time
 import os
+import html
 import yfinance as yf
 import numpy as np
 import requests
@@ -387,15 +388,15 @@ def local_css(file_name):
 local_css("style.css")
 
 # --- Main App ---
-def main():
-    # --- Enhanced News Ticker ---
-    st.markdown('''
-    <div class="news-ticker">
-        <div class="news-container">
-            {'<span class="news-item"> • </span>'.join([f'<span class="news-item">{news}</span>' for news in st.session_state.news_ticker])}
-        </div>
+ticker_html = """
+<div class="news-ticker">
+    <div class="news-container">
+        {}
     </div>
-    ''', unsafe_allow_html=True)
+</div>
+""".format(' • '.join([f'<span class="news-item">{html.escape(news)}</span>' for news in st.session_state.news_ticker]))
+
+st.markdown(ticker_html, unsafe_allow_html=True)
     
     # --- Header Section ---
     col1, col2 = st.columns([3, 1])
