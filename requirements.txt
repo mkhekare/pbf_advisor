@@ -10,3 +10,6 @@ PyYAML
 streamlit-authenticator
 yfinance>=0.2
 plaid-python
+requests
+beautifulsoup4
+streamlit-lottie
