@@ -79,8 +79,8 @@ Current date: ''' + datetime.now().strftime("%Y-%m-%d") + "\n\nQuestion: " + tex
         return f"❌ Error processing your request: {str(e)}"
 
 def calculate_savings_metrics(income, expenses):
-    savings = income - expenses
-    savings_rate = (savings / income) * 100 if income > 0 else 0
+    savings = float(income) - float(expenses)
+    savings_rate = (savings / float(income)) * 100 if income > 0 else 0.0
     return savings, savings_rate
 
 def create_budget_chart(budget_data):
@@ -161,11 +161,11 @@ def main():
             st.subheader("Income & Expenses")
             with st.container(border=True):
                 income = st.number_input("Monthly Income (₹)", min_value=0.0, 
-                                      value=st.session_state.financial_data['income'],
-                                      key="income_input")
+                        value=float(st.session_state.financial_data['income']),
+                        key="income_input")
                 expenses = st.number_input("Monthly Expenses (₹)", min_value=0.0, 
-                                         value=st.session_state.financial_data['expenses'],
-                                         key="expenses_input")
+                          value=float(st.session_state.financial_data['expenses']),
+                          key="expenses_input")
                 
                 if st.button("Update Budget", use_container_width=True):
                     st.session_state.financial_data['income'] = income
@@ -197,14 +197,13 @@ def main():
                 cols = st.columns(3)
                 categories = list(st.session_state.financial_data['budget_categories'].keys())
                 
-                for i, category in enumerate(categories):
-                    with cols[i % 3]:
-                        st.session_state.financial_data['budget_categories'][category] = st.number_input(
-                            f"{category} (₹)",
-                            min_value=0.0,
-                            value=st.session_state.financial_data['budget_categories'][category],
-                            key=f"budget_{category}"
-                        )
+                for category in st.session_state.financial_data['budget_categories']:
+    st.session_state.financial_data['budget_categories'][category] = st.number_input(
+        f"{category} (₹)",
+        min_value=0.0,
+        value=float(st.session_state.financial_data['budget_categories'][category]),
+        key=f"budget_{category}"
+    )
             
             st.subheader("Budget Visualization")
             budget_chart = create_budget_chart(st.session_state.financial_data['budget_categories'])
