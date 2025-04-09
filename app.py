@@ -580,6 +580,13 @@ def main():
                 total_current = sum(inv['current_value'] for inv in st.session_state.financial_data['investments'])
                 overall_return = ((total_current - total_invested) / total_invested * 100) if total_invested > 0 else 0
 
+                update_investment_values()
+                total_investments = sum(inv['current_value'] for inv in st.session_state.financial_data['investments'])
+                savings, savings_rate = calculate_savings_metrics(
+                        st.session_state.financial_data['income'],
+                        st.session_state.financial_data['expenses']
+                    )    
+                
                 # Calculate investment growth percentage
                 investment_growth = 0.0
                 total_invested = sum(inv['amount'] for inv in st.session_state.financial_data['investments'])
