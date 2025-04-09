@@ -5,6 +5,8 @@ import google.generativeai as genai
 from datetime import datetime
 import time
 import os
+import yfinance as yf
+import plaid  # Remove if not using Plaid integration
 
 # --- App Configuration ---
 st.set_page_config(
@@ -48,32 +50,32 @@ if 'financial_data' not in st.session_state:
         'investments': []
     }
 
+if 'chat_context' not in st.session_state:
+    st.session_state.chat_context = []
+
+if 'achievements' not in st.session_state:
+    st.session_state.achievements = {
+        'budget_set': False,
+        'first_investment': False,
+        'savings_goal': False
+    }
+
 # --- Helper Functions ---
+@st.cache_data(ttl=3600)
+def get_market_data(ticker):
+    return yf.Ticker(ticker).history(period="1mo")
+
 def get_finance_response(text_input):
     try:
         model = genai.GenerativeModel("gemini-1.5-pro")
-        prompt = '''You are WealthWise AI, an advanced financial advisor. Provide detailed, personalized advice on:
-- Budgeting strategies and optimization
-- Saving techniques and emergency funds
-- Investment options (FDs, SIPs, Mutual Funds, Stocks, ETFs)
-- Retirement planning (NPS, PPF, Pension plans)
-- Tax planning and optimization
-- Debt management and credit scores
-- Financial goal planning (short-term and long-term)
-- Insurance planning (term, health, life)
-
-Format responses with clear headings, bullet points, and actionable steps. Use markdown for better readability.
-
-If the question is outside personal finance, politely respond:
-"I specialize in personal finance. How about we discuss budgeting, investing, or financial planning instead?"
-
-For stock tips:
-"I can provide general market education but cannot give specific recommendations. For personalized advice, consult a SEBI-registered advisor."
-
-Current date: ''' + datetime.now().strftime("%Y-%m-%d") + "\n\nQuestion: " + text_input
+        prompt = f'''You are WealthWise AI, an advanced financial advisor. Provide detailed, personalized advice including:
+- Contextual chat history: {st.session_state.chat_context[-3:]}
+- Current financial data: {st.session_state.financial_data}
+- Question: {text_input}'''
         
         with st.spinner("🧠 Analyzing your financial query..."):
             response = model.generate_content(prompt)
+            st.session_state.chat_context.append(response.text)
             return response.text
     except Exception as e:
         return f"❌ Error processing your request: {str(e)}"
@@ -83,18 +85,37 @@ def calculate_savings_metrics(income, expenses):
     savings_rate = (savings / float(income)) * 100 if income > 0 else 0.0
     return savings, savings_rate
 
-def create_budget_chart(budget_data):
-    df = pd.DataFrame.from_dict(budget_data, orient='index', columns=['Amount'])
-    df = df.reset_index().rename(columns={'index': 'Category'})
-    df = df[df['Amount'] > 0]
+def create_cashflow_diagram():
+    income = st.session_state.financial_data['income']
+    categories = st.session_state.financial_data['budget_categories']
     
-    if not df.empty:
-        fig = px.pie(df, values='Amount', names='Category', 
-                    title='Budget Allocation', hole=0.3,
-                    color_discrete_sequence=px.colors.sequential.Agsunset)
-        fig.update_traces(textposition='inside', textinfo='percent+label')
-        return fig
-    return None
+    fig = px.sankey(
+        node=dict(label=["Income"] + list(categories.keys())),
+        link=dict(
+            source=[0]*len(categories),
+            target=list(range(1, len(categories)+1)),
+            value=[income] + list(categories.values())
+        )
+    )
+    fig.update_layout(title_text="Cash Flow Analysis", font_size=12)
+    return fig
+
+def calculate_goal_forecast(target, current, deadline):
+    months_left = (datetime.strptime(deadline, "%Y-%m-%d") - datetime.now()).days // 30
+    required_monthly = (target - current) / months_left if months_left > 0 else 0
+    return {
+        "required_monthly": required_monthly,
+        "completion_probability": min(current/target*100 + (100 - current/target*100)/months_left, 100)
+    }
+
+def update_investment_values():
+    for inv in st.session_state.financial_data['investments']:
+        if inv['type'] in ["Stocks", "ETF"] and 'ticker' in inv:
+            try:
+                data = get_market_data(inv['ticker'])
+                inv['current_value'] = data['Close'].iloc[-1] * inv.get('shares', 1)
+            except:
+                pass
 
 # --- Custom CSS ---
 def local_css(file_name):
@@ -110,6 +131,16 @@ def main():
     <div class="header">
         <h1>WealthWise AI</h1>
         <p class="subtitle">Your Intelligent Personal Finance Assistant</p>
+        <div class="dashboard-header">
+            <div class="metric-card">
+                <h3>Net Worth</h3>
+                <p>₹{(sum(inv['current_value'] for inv in st.session_state.financial_data['investments']) + st.session_state.financial_data['savings']):,.2f}</p>
+            </div>
+            <div class="metric-card">
+                <h3>Savings Rate</h3>
+                <p>{calculate_savings_metrics(st.session_state.financial_data['income'], st.session_state.financial_data['expenses'])[1]:.1f}%</p>
+            </div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
     
@@ -125,21 +156,25 @@ def main():
     # --- AI Chatbot Tab ---
     with tabs[0]:
         st.header("Ask WealthWise AI")
-        st.markdown("""
-        <div class="info-box">
-            Get personalized advice on budgeting, investing, retirement planning, and more.
-        </div>
-        """, unsafe_allow_html=True)
+        col1, col2 = st.columns([4, 1])
+        with col1:
+            st.markdown("""
+            <div class="info-box">
+                Get personalized advice on budgeting, investing, retirement planning, and more.
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col2:
+            if st.button("🎤 Voice Input", help="Use microphone for voice input"):
+                st.experimental_rerun()  # Placeholder for voice input implementation
         
         if "messages" not in st.session_state:
             st.session_state.messages = []
         
-        # Display chat messages
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
         
-        # Chat input
         if prompt := st.chat_input("Ask your financial question..."):
             st.session_state.messages.append({"role": "user", "content": prompt})
             with st.chat_message("user"):
@@ -150,337 +185,136 @@ def main():
                 st.markdown(response)
             
             st.session_state.messages.append({"role": "assistant", "content": response})
-    
+
     # --- Budget Planner Tab ---
     with tabs[1]:
-        st.header("📊 Personal Budget Planner")
+        st.header("📊 Smart Budget Planner")
+        update_investment_values()
         
         col1, col2 = st.columns([1, 1], gap="large")
         
         with col1:
-            # Income & Expenses Section
             with st.container(border=True):
-                st.subheader("💰 Income & Expenses")
+                st.subheader("💰 Real-Time Tracking")
+                if st.button("🔗 Connect Bank Account", help="Secure connection using Plaid API"):
+                    st.info("Bank connection feature coming soon!")
                 
-                # Income Input
-                income = st.number_input(
-                    "Monthly Income (₹)", 
-                    min_value=0.0,
-                    value=float(st.session_state.financial_data['income']),
-                    step=1000.0,
-                    format="%.2f",
-                    key="income_input"
-                )
+                income = st.number_input("Monthly Income (₹)", 
+                    value=st.session_state.financial_data['income'],
+                    format="%.2f")
+                expenses = st.number_input("Monthly Expenses (₹)", 
+                    value=st.session_state.financial_data['expenses'],
+                    format="%.2f")
                 
-                # Expenses Input
-                expenses = st.number_input(
-                    "Monthly Expenses (₹)", 
-                    min_value=0.0,
-                    value=float(st.session_state.financial_data['expenses']),
-                    step=1000.0,
-                    format="%.2f",
-                    key="expenses_input"
-                )
-                
-                # Update Button
-                if st.button("Update Budget", use_container_width=True, type="primary"):
-                    try:
-                        st.session_state.financial_data['income'] = float(income)
-                        st.session_state.financial_data['expenses'] = float(expenses)
-                        savings, savings_rate = calculate_savings_metrics(income, expenses)
-                        st.session_state.financial_data['savings'] = float(savings)
-                        st.toast("Budget updated successfully!", icon="✅")
-                    except Exception as e:
-                        st.error(f"Error updating budget: {str(e)}")
-            
-            # Savings Metrics Section
+                if st.button("Update Budget", type="primary"):
+                    st.session_state.financial_data.update({
+                        'income': income,
+                        'expenses': expenses,
+                        'savings': income - expenses
+                    })
+                    st.toast("Budget updated!", icon="✅")
+
             with st.container(border=True):
-                st.subheader("📈 Savings Overview")
-                savings, savings_rate = calculate_savings_metrics(
-                    float(st.session_state.financial_data['income']),
-                    float(st.session_state.financial_data['expenses'])
-                )
-                
-                # Display metrics with improved formatting
-                col1_1, col1_2 = st.columns(2)
-                with col1_1:
-                    st.metric(
-                        "Monthly Savings", 
-                        f"₹{savings:,.2f}", 
-                        help="Income minus expenses"
-                    )
-                with col1_2:
-                    st.metric(
-                        "Savings Rate", 
-                        f"{savings_rate:.2f}%",
-                        help="Percentage of income saved"
-                    )
-                
-                # 50/30/20 Rule Visualization
-                st.subheader("🧾 50/30/20 Rule Allocation")
-                if st.session_state.financial_data['income'] > 0:
-                    rule_503020 = {
-                        "Needs (50%)": float(st.session_state.financial_data['income']) * 0.5,
-                        "Wants (30%)": float(st.session_state.financial_data['income']) * 0.3,
-                        "Savings (20%)": float(st.session_state.financial_data['income']) * 0.2
-                    }
-                    
-                    df = pd.DataFrame.from_dict(rule_503020, orient='index', columns=['Amount'])
-                    st.dataframe(
-                        df.style.format('₹{:,.2f}'),
-                        use_container_width=True,
-                        height=len(rule_503020)*35+38
-                    )
-                else:
-                    st.warning("Enter your income to see allocation suggestions")
-        
+                st.plotly_chart(create_cashflow_diagram(), use_container_width=True)
+
         with col2:
-            # Budget Categories Section
             with st.container(border=True):
-                st.subheader("🗂 Budget Categories")
-                
-                with st.expander("✏️ Customize Budget Categories", expanded=True):
-                    cols = st.columns(3)
-                    categories = list(st.session_state.financial_data['budget_categories'].keys())
-                    
-                    for i, category in enumerate(categories):
-                        with cols[i % 3]:
-                            st.session_state.financial_data['budget_categories'][category] = st.number_input(
-                                f"{category} (₹)",
-                                min_value=0.0,
-                                value=float(st.session_state.financial_data['budget_categories'][category]),
-                                step=100.0,
-                                format="%.2f",
-                                key=f"budget_{category}"
-                            )
-                
-                # Budget Visualization
-                st.subheader("📊 Budget Visualization")
-                budget_chart = create_budget_chart(st.session_state.financial_data['budget_categories'])
-                if budget_chart:
-                    st.plotly_chart(budget_chart, use_container_width=True)
-                else:
-                    st.warning("No budget data to display. Please add budget amounts.")
-    
+                st.subheader("🗂 Category Breakdown")
+                categories = st.session_state.financial_data['budget_categories']
+                for cat in categories:
+                    categories[cat] = st.slider(f"{cat} (%)", 
+                        value=int(categories[cat]/income*100 if income >0 else 0),
+                        max_value=100)
+                st.session_state.financial_data['budget_categories'] = {
+                    k: v/100*income for k,v in categories.items()
+                }
+
     # --- Savings Goals Tab ---
     with tabs[2]:
-        st.header("Savings Goals Tracker")
-        
-        col1, col2 = st.columns([1, 1], gap="large")
-        
-        with col1:
-            with st.container(border=True):
-                st.subheader("Add New Goal")
-                goal_name = st.text_input("Goal Name", key="goal_name")
-                goal_amount = st.number_input("Target Amount (₹)", min_value=0.0, key="goal_amount")
-                goal_deadline = st.date_input("Target Date", key="goal_deadline")
-                
-                if st.button("Add Goal", use_container_width=True):
-                    if goal_name and goal_amount > 0:
-                        new_goal = {
-                            "name": goal_name,
-                            "target": goal_amount,
-                            "deadline": goal_deadline.strftime("%Y-%m-%d"),
-                            "saved": 0,
-                            "created": datetime.now().strftime("%Y-%m-%d")
-                        }
-                        st.session_state.financial_data['goals'].append(new_goal)
-                        st.toast("Goal added successfully!", icon="✅")
-        
-        with col2:
-            st.subheader("Your Goals")
-            if not st.session_state.financial_data['goals']:
-                st.info("No savings goals yet. Add your first goal!")
-            else:
-                for i, goal in enumerate(st.session_state.financial_data['goals']):
-                    with st.container(border=True):
-                        cols = st.columns([3, 1])
-                        with cols[0]:
-                            st.markdown(f"**{goal['name']}**")
-                            st.caption(f"Target: ₹{goal['target']:,.2f} by {goal['deadline']}")
-                            
-                            progress = goal['saved'] / goal['target'] if goal['target'] > 0 else 0
-                            st.progress(min(progress, 1.0), text=f"{progress*100:.1f}% completed")
-                        
-                        with cols[1]:
-                            deposit = st.number_input(
-                                "Add amount", 
-                                min_value=0.0, 
-                                key=f"deposit_{i}",
-                                label_visibility="collapsed"
-                            )
-                            if st.button("Add", key=f"add_{i}", use_container_width=True):
-                                if deposit > 0:
-                                    st.session_state.financial_data['goals'][i]['saved'] += deposit
-                                    st.toast(f"Added ₹{deposit:,.2f} to {goal['name']}", icon="✅")
-    
-    # --- Investments Tab ---
-    with tabs[3]:
-        st.header("Investment Portfolio")
-        
-        tab_invest, tab_learn = st.tabs(["Your Portfolio", "Investment Guide"])
-        
-        with tab_invest:
-            st.subheader("Track Your Investments")
-            
-            with st.form("investment_form"):
-                col1, col2, col3 = st.columns(3)
-                
-                with col1:
-                    inv_type = st.selectbox("Investment Type", [
-                        "Fixed Deposit",
-                        "Mutual Fund",
-                        "Stocks",
-                        "ETF",
-                        "PPF",
-                        "NPS",
-                        "Gold",
-                        "Real Estate",
-                        "Other"
-                    ])
-                    inv_name = st.text_input("Investment Name")
-                
-                with col2:
-                    inv_amount = st.number_input("Amount Invested (₹)", min_value=0.0)
-                    inv_date = st.date_input("Investment Date")
-                
-                with col3:
-                    inv_return = st.number_input("Current Value (₹)", min_value=0.0, value=inv_amount)
-                    inv_notes = st.text_area("Notes")
-                
-                if st.form_submit_button("Add Investment", use_container_width=True):
-                    new_investment = {
-                        "type": inv_type,
-                        "name": inv_name,
-                        "amount": inv_amount,
-                        "date": inv_date.strftime("%Y-%m-%d"),
-                        "current_value": inv_return,
-                        "notes": inv_notes
-                    }
-                    st.session_state.financial_data['investments'].append(new_investment)
-                    st.toast("Investment added to portfolio!", icon="✅")
-            
-            if st.session_state.financial_data['investments']:
-                st.subheader("Your Investments")
-                inv_df = pd.DataFrame(st.session_state.financial_data['investments'])
-                st.dataframe(
-                    inv_df.style.format({
-                        'amount': '₹{:,}',
-                        'current_value': '₹{:,}'
-                    }),
-                    use_container_width=True,
-                    hide_index=True
-                )
-                
-                # Calculate overall performance
-                total_invested = sum(inv['amount'] for inv in st.session_state.financial_data['investments'])
-                total_current = sum(inv['current_value'] for inv in st.session_state.financial_data['investments'])
-                overall_return = ((total_current - total_invested) / total_invested * 100) if total_invested > 0 else 0
-                
-                cols = st.columns(3)
-                cols[0].metric("Total Invested", f"₹{total_invested:,.2f}")
-                cols[1].metric("Current Value", f"₹{total_current:,.2f}")
-                cols[2].metric("Overall Return", f"{overall_return:.2f}%")
-            else:
-                st.info("No investments tracked yet. Add your first investment above!")
-        
-        with tab_learn:
-            st.subheader("Investment Education")
-            st.write("Learn about different investment options:")
-            
-            invest_options = {
-                "Fixed Deposits": {
-                    "Description": "Low-risk, fixed returns with guaranteed principal",
-                    "Risk": "Low",
-                    "Returns": "4-7% p.a.",
-                    "Liquidity": "Low (lock-in period)",
-                    "Tax": "Taxable as per income slab"
-                },
-                "Mutual Funds": {
-                    "Description": "Professional managed funds investing in stocks/bonds",
-                    "Risk": "Low to High",
-                    "Returns": "8-15% p.a.",
-                    "Liquidity": "High (except ELSS)",
-                    "Tax": "STCG: 15%, LTCG: 10% over ₹1L"
-                }
-            }
-            
-            selected_investment = st.selectbox("Learn about:", list(invest_options.keys()))
-            
-            st.table(pd.DataFrame.from_dict(invest_options[selected_investment], orient='index'))
-    
-    # --- Learning Center Tab ---
-    with tabs[4]:
-        st.header("Financial Learning Center")
-        
-        with st.expander("📖 Budgeting Basics", expanded=True):
-            st.markdown("""
-            ### The 50/30/20 Budget Rule
-            - **50% Needs**: Essential expenses you must pay
-                - Rent/Mortgage
-                - Groceries
-                - Utilities
-                - Transportation
-                - Minimum debt payments
-            
-            - **30% Wants**: Non-essential spending
-                - Dining out
-                - Entertainment
-                - Hobbies
-                - Vacations
-            
-            - **20% Savings**: Financial goals
-                - Emergency fund
-                - Retirement
-                - Investments
-                - Debt repayment beyond minimums
-            """)
-        
+        st.header("🎯 Smart Savings Goals")
         col1, col2 = st.columns(2)
         
         with col1:
-            with st.expander("💸 SIP Calculator"):
-                monthly_inv = st.number_input("Monthly Investment (₹):", min_value=0, value=5000)
-                years = st.slider("Investment Period (years):", 1, 30, 10)
-                rate = st.slider("Expected Return (% p.a.):", 1, 20, 12)
+            with st.container(border=True):
+                st.subheader("New Goal Setup")
+                goal_name = st.text_input("Goal Name")
+                goal_target = st.number_input("Target Amount (₹)", min_value=0)
+                goal_date = st.date_input("Target Date")
                 
-                if st.button("Calculate SIP Growth"):
-                    months = years * 12
-                    monthly_rate = rate / 12 / 100
-                    future_value = monthly_inv * (((1 + monthly_rate)**months - 1) / monthly_rate) * (1 + monthly_rate)
-                    st.metric("Estimated Future Value", f"₹{future_value:,.2f}")
+                if st.button("➕ Add Goal"):
+                    new_goal = {
+                        "name": goal_name,
+                        "target": goal_target,
+                        "saved": 0,
+                        "deadline": goal_date.strftime("%Y-%m-%d")
+                    }
+                    st.session_state.financial_data['goals'].append(new_goal)
         
         with col2:
-            with st.expander("🔄 Debt Payoff Calculator"):
-                debt_amount = st.number_input("Total Debt (₹):", min_value=0, value=100000)
-                interest_rate = st.slider("Interest Rate (% p.a.):", 1, 30, 12)
-                monthly_payment = st.number_input("Monthly Payment (₹):", min_value=0, value=5000)
-                
-                if st.button("Calculate Payoff Plan"):
-                    monthly_rate = interest_rate / 12 / 100
-                    if monthly_payment <= debt_amount * monthly_rate:
-                        st.error("Payment too low! You'll never pay off at this rate.")
-                    else:
-                        months = 0
-                        remaining = debt_amount
-                        while remaining > 0:
-                            interest = remaining * monthly_rate
-                            principal = monthly_payment - interest
-                            remaining -= principal
-                            months += 1
-                        
-                        st.metric("Time to Payoff", f"{months//12} years {months%12} months")
-                        st.metric("Total Interest Paid", f"₹{(monthly_payment * months - debt_amount):,.2f}")
+            for goal in st.session_state.financial_data['goals']:
+                with st.container(border=True):
+                    forecast = calculate_goal_forecast(goal['target'], goal['saved'], goal['deadline'])
+                    st.markdown(f"**{goal['name']}**")
+                    cols = st.columns(2)
+                    cols[0].metric("Target", f"₹{goal['target']:,.2f}")
+                    cols[1].metric("Monthly Needed", f"₹{forecast['required_monthly']:,.2f}")
+                    st.progress(forecast['completion_probability']/100)
+
+    # --- Investments Tab ---
+    with tabs[3]:
+        st.header("📈 Intelligent Investments")
+        update_investment_values()
+        
+        tab1, tab2 = st.tabs(["Portfolio", "Research"])
+        
+        with tab1:
+            st.subheader("Live Portfolio Tracking")
+            for inv in st.session_state.financial_data['investments']:
+                with st.container(border=True):
+                    cols = st.columns([2,1,1,1])
+                    cols[0].write(f"**{inv['name']}** ({inv['type']})")
+                    cols[1].metric("Invested", f"₹{inv['amount']:,.2f}")
+                    cols[2].metric("Current", f"₹{inv['current_value']:,.2f}")
+                    cols[3].metric("Return", 
+                        f"{(inv['current_value']/inv['amount']-1)*100:.1f}%")
+            
+            total = sum(inv['current_value'] for inv in st.session_state.financial_data['investments'])
+            st.metric("Total Portfolio Value", f"₹{total:,.2f}")
+
+        with tab2:
+            st.subheader("Market Research")
+            ticker = st.text_input("Enter Stock/ETF Symbol:")
+            if ticker:
+                data = get_market_data(ticker)
+                st.line_chart(data['Close'])
+
+    # --- Learning Center Tab ---
+    with tabs[4]:
+        st.header("📚 Interactive Learning Hub")
+        
+        with st.expander("💰 Financial Simulators", expanded=True):
+            tab1, tab2 = st.tabs(["Compound Growth", "Debt Payoff"])
+            
+            with tab1:
+                years = st.slider("Investment Horizon (years)", 1, 40, 10)
+                monthly = st.number_input("Monthly Contribution (₹)", 1000, 100000, 5000)
+                rate = st.slider("Expected Return (%)", 1, 20, 10)
+                future_value = monthly * (((1 + rate/100/12)**(years*12) - 1) / (rate/100/12)
+                st.metric("Future Value", f"₹{future_value:,.2f}")
+            
+            with tab2:
+                debt = st.number_input("Debt Amount (₹)", 1000, 10000000, 100000)
+                interest = st.slider("Interest Rate (%)", 1, 30, 15)
+                payment = st.number_input("Monthly Payment (₹)", 1000, 100000, 5000)
+                months = -np.log(1 - debt*(interest/100/12)/payment) / np.log(1 + interest/100/12)
+                st.metric("Payoff Period", f"{months//12:.0f} years {months%12:.0f} months")
 
 # --- Run the App ---
 if __name__ == "__main__":
     main()
-    
-    # --- Footer ---
     st.markdown("---")
     st.markdown("""
     <div class="footer">
-        <p><strong>Disclaimer</strong>: This application provides general financial information and should not be considered professional advice.</p>
-        <p>Consult a certified financial advisor before making investment decisions.</p>
+        <p>💰 Wealth management powered by AI | Real-time market data | Predictive analytics</p>
     </div>
     """, unsafe_allow_html=True)
