@@ -152,115 +152,115 @@ def main():
             st.session_state.messages.append({"role": "assistant", "content": response})
     
     # --- Budget Planner Tab ---
-with tabs[1]:
-    st.header("📊 Personal Budget Planner")
-    
-    col1, col2 = st.columns([1, 1], gap="large")
-    
-    with col1:
-        # Income & Expenses Section
-        with st.container(border=True):
-            st.subheader("💰 Income & Expenses")
-            
-            # Income Input
-            income = st.number_input(
-                "Monthly Income (₹)", 
-                min_value=0.0,
-                value=float(st.session_state.financial_data['income']),
-                step=1000.0,
-                format="%.2f",
-                key="income_input"
-            )
-            
-            # Expenses Input
-            expenses = st.number_input(
-                "Monthly Expenses (₹)", 
-                min_value=0.0,
-                value=float(st.session_state.financial_data['expenses']),
-                step=1000.0,
-                format="%.2f",
-                key="expenses_input"
-            )
-            
-            # Update Button
-            if st.button("Update Budget", use_container_width=True, type="primary"):
-                try:
-                    st.session_state.financial_data['income'] = float(income)
-                    st.session_state.financial_data['expenses'] = float(expenses)
-                    savings, savings_rate = calculate_savings_metrics(income, expenses)
-                    st.session_state.financial_data['savings'] = float(savings)
-                    st.toast("Budget updated successfully!", icon="✅")
-                except Exception as e:
-                    st.error(f"Error updating budget: {str(e)}")
+    with tabs[1]:
+        st.header("📊 Personal Budget Planner")
         
-        # Savings Metrics Section
-        with st.container(border=True):
-            st.subheader("📈 Savings Overview")
-            savings, savings_rate = calculate_savings_metrics(
-                float(st.session_state.financial_data['income']),
-                float(st.session_state.financial_data['expenses'])
-            )
-            
-            # Display metrics with improved formatting
-            col1_1, col1_2 = st.columns(2)
-            with col1_1:
-                st.metric(
-                    "Monthly Savings", 
-                    f"₹{savings:,.2f}", 
-                    help="Income minus expenses"
-                )
-            with col1_2:
-                st.metric(
-                    "Savings Rate", 
-                    f"{savings_rate:.2f}%",
-                    help="Percentage of income saved"
-                )
-            
-            # 50/30/20 Rule Visualization
-            st.subheader("🧾 50/30/20 Rule Allocation")
-            if st.session_state.financial_data['income'] > 0:
-                rule_503020 = {
-                    "Needs (50%)": float(st.session_state.financial_data['income']) * 0.5,
-                    "Wants (30%)": float(st.session_state.financial_data['income']) * 0.3,
-                    "Savings (20%)": float(st.session_state.financial_data['income']) * 0.2
-                }
+        col1, col2 = st.columns([1, 1], gap="large")
+        
+        with col1:
+            # Income & Expenses Section
+            with st.container(border=True):
+                st.subheader("💰 Income & Expenses")
                 
-                df = pd.DataFrame.from_dict(rule_503020, orient='index', columns=['Amount'])
-                st.dataframe(
-                    df.style.format('₹{:,.2f}'),
-                    use_container_width=True,
-                    height=len(rule_503020)*35+38
+                # Income Input
+                income = st.number_input(
+                    "Monthly Income (₹)", 
+                    min_value=0.0,
+                    value=float(st.session_state.financial_data['income']),
+                    step=1000.0,
+                    format="%.2f",
+                    key="income_input"
                 )
-            else:
-                st.warning("Enter your income to see allocation suggestions")
-    
-    with col2:
-        # Budget Categories Section
-        with st.container(border=True):
-            st.subheader("🗂 Budget Categories")
-            
-            with st.expander("✏️ Customize Budget Categories", expanded=True):
-                cols = st.columns(3)
-                categories = list(st.session_state.financial_data['budget_categories'].keys())
                 
-                for i, category in enumerate(categories):
-                    with cols[i % 3]:
-                        st.session_state.financial_data['budget_categories'][category] = st.number_input(
-                            f"{category} (₹)",
-                            min_value=0.0,
-                            value=float(st.session_state.financial_data['budget_categories'][category]),
-                            step=100.0,
-                            format="%.2f",
-                            key=f"budget_{category}"
-                        )
+                # Expenses Input
+                expenses = st.number_input(
+                    "Monthly Expenses (₹)", 
+                    min_value=0.0,
+                    value=float(st.session_state.financial_data['expenses']),
+                    step=1000.0,
+                    format="%.2f",
+                    key="expenses_input"
+                )
+                
+                # Update Button
+                if st.button("Update Budget", use_container_width=True, type="primary"):
+                    try:
+                        st.session_state.financial_data['income'] = float(income)
+                        st.session_state.financial_data['expenses'] = float(expenses)
+                        savings, savings_rate = calculate_savings_metrics(income, expenses)
+                        st.session_state.financial_data['savings'] = float(savings)
+                        st.toast("Budget updated successfully!", icon="✅")
+                    except Exception as e:
+                        st.error(f"Error updating budget: {str(e)}")
             
-            # Budget Visualization
-            st.subheader("📊 Budget Visualization")
-            budget_chart = create_budget_chart(st.session_state.financial_data['budget_categories'])
-            if budget_chart:
-                st.plotly_chart(budget_chart, use_container_width=True)
-            else:
-                st.warning("No budget data to display. Please add budget amounts.")
+            # Savings Metrics Section
+            with st.container(border=True):
+                st.subheader("📈 Savings Overview")
+                savings, savings_rate = calculate_savings_metrics(
+                    float(st.session_state.financial_data['income']),
+                    float(st.session_state.financial_data['expenses'])
+                )
+                
+                # Display metrics with improved formatting
+                col1_1, col1_2 = st.columns(2)
+                with col1_1:
+                    st.metric(
+                        "Monthly Savings", 
+                        f"₹{savings:,.2f}", 
+                        help="Income minus expenses"
+                    )
+                with col1_2:
+                    st.metric(
+                        "Savings Rate", 
+                        f"{savings_rate:.2f}%",
+                        help="Percentage of income saved"
+                    )
+                
+                # 50/30/20 Rule Visualization
+                st.subheader("🧾 50/30/20 Rule Allocation")
+                if st.session_state.financial_data['income'] > 0:
+                    rule_503020 = {
+                        "Needs (50%)": float(st.session_state.financial_data['income']) * 0.5,
+                        "Wants (30%)": float(st.session_state.financial_data['income']) * 0.3,
+                        "Savings (20%)": float(st.session_state.financial_data['income']) * 0.2
+                    }
+                    
+                    df = pd.DataFrame.from_dict(rule_503020, orient='index', columns=['Amount'])
+                    st.dataframe(
+                        df.style.format('₹{:,.2f}'),
+                        use_container_width=True,
+                        height=len(rule_503020)*35+38
+                    )
+                else:
+                    st.warning("Enter your income to see allocation suggestions")
+        
+        with col2:
+            # Budget Categories Section
+            with st.container(border=True):
+                st.subheader("🗂 Budget Categories")
+                
+                with st.expander("✏️ Customize Budget Categories", expanded=True):
+                    cols = st.columns(3)
+                    categories = list(st.session_state.financial_data['budget_categories'].keys())
+                    
+                    for i, category in enumerate(categories):
+                        with cols[i % 3]:
+                            st.session_state.financial_data['budget_categories'][category] = st.number_input(
+                                f"{category} (₹)",
+                                min_value=0.0,
+                                value=float(st.session_state.financial_data['budget_categories'][category]),
+                                step=100.0,
+                                format="%.2f",
+                                key=f"budget_{category}"
+                            )
+                
+                # Budget Visualization
+                st.subheader("📊 Budget Visualization")
+                budget_chart = create_budget_chart(st.session_state.financial_data['budget_categories'])
+                if budget_chart:
+                    st.plotly_chart(budget_chart, use_container_width=True)
+                else:
+                    st.warning("No budget data to display. Please add budget amounts.")
     
     # --- Savings Goals Tab ---
     with tabs[2]:
