@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
+import plotly.graph_objects as go  # Changed from plotly.express
 import google.generativeai as genai
 from datetime import datetime, timedelta
 import time
@@ -12,6 +12,7 @@ from bs4 import BeautifulSoup
 import random
 import json
 from streamlit_lottie import st_lottie
+import feedparser  # For RSS feeds
 
 # --- App Configuration ---
 st.set_page_config(
@@ -40,50 +41,72 @@ def load_lottieurl(url: str):
 
 lottie_animation = load_lottieurl("https://assets9.lottiefiles.com/packages/lf20_6e0QCr.json")
 
-# --- Financial News API ---
-def fetch_financial_news():
-    news_sources = [
-        {"source": "Economic Times", "url": "https://economictimes.indiatimes.com"},
-        {"source": "Moneycontrol", "url": "https://www.moneycontrol.com"},
-        {"source": "Bloomberg", "url": "https://www.bloomberg.com"},
-        {"source": "Reuters", "url": "https://www.reuters.com"},
-        {"source": "Business Standard", "url": "https://www.business-standard.com"}
+# --- Enhanced Financial News API ---
+def fetch_latest_financial_news():
+    """Fetch real-time financial news from multiple sources"""
+    news_items = []
+    
+    # News API sources (using free tier endpoints)
+    sources = [
+        {"name": "Reuters Business", "url": "https://www.reutersagency.com/feed/?taxonomy=best-topics&post_type=best"},
+        {"name": "Bloomberg", "url": "https://news.google.com/rss/search?q=Bloomberg+finance&hl=en-IN&gl=IN&ceid=IN:en"},
+        {"name": "Economic Times", "url": "https://economictimes.indiatimes.com/rssfeedstopstories.cms"},
+        {"name": "Moneycontrol", "url": "https://www.moneycontrol.com/rss/latestnews.xml"},
+        {"name": "Business Standard", "url": "https://www.business-standard.com/rss/latest.rss"},
+        {"name": "CNBC", "url": "https://www.cnbc.com/id/100003114/device/rss/rss.html"},
+        {"name": "Financial Times", "url": "https://www.ft.com/?format=rss"},
+        {"name": "Mint", "url": "https://www.livemint.com/rss/news"},
+        {"name": "NDTV Profit", "url": "https://feeds.feedburner.com/ndtvprofit-latest"}
     ]
     
-    sample_news = [
-        "Sensex climbs 500 points as banking stocks rally",
-        "RBI keeps repo rate unchanged at 6.5%",
-        "India's GDP grows at 7.8% in Q1 FY24",
-        "Rupee strengthens against dollar, closes at 82.45",
-        "SEBI introduces new regulations for algo trading",
-        "Global markets mixed as Fed signals rate pause",
-        "Gold prices hit record high of ₹62,000 per 10gm",
-        "IT sector faces headwinds as clients cut spending",
-        "Adani Group stocks recover after Hindenburg report",
-        "India's forex reserves rise to $600 billion",
-        "Oil prices surge as OPEC+ extends production cuts",
-        "Retail inflation eases to 5.7% in September",
-        "Paytm shares jump 10% after Q2 results",
-        "Tata Motors announces EV battery plant in Gujarat",
-        "US Treasury yields hit 16-year high at 5%",
-        "China's economy shows signs of recovery",
-        "Nifty IT index falls 2% on weak earnings",
-        "FPIs pull out ₹10,000 crore from Indian markets",
-        "Reliance Jio announces 5G rollout in 100 more cities",
-        "India's manufacturing PMI rises to 58.6 in October",
-        "Bitcoin surges past $35,000 amid ETF speculation",
-        "HDFC Bank reports 20% growth in net profit",
-        "Air India places record order for 470 aircraft",
-        "India's exports grow 6.2% despite global slowdown",
-        "GST collections cross ₹1.6 lakh crore in October",
-        "SBI raises FD interest rates by 25 basis points",
-        "US Fed maintains hawkish stance on inflation",
-        "India's unemployment rate falls to 7.6%",
-        "LIC reports 10% growth in premium income",
-        "NSE introduces new derivatives contracts"
-    ]
+    # Fetch news from each source
+    for source in sources:
+        try:
+            feed = feedparser.parse(source["url"])
+            for entry in feed.entries[:10]:  # Get top 10 from each source
+                if "finance" in entry.title.lower() or "stock" in entry.title.lower() or "market" in entry.title.lower():
+                    news_items.append(f"{source['name']}: {entry.title}")
+        except Exception as e:
+            st.warning(f"Could not fetch news from {source['name']}: {str(e)}")
+            continue
     
-    return [f"{random.choice(news_sources)['source']}: {news}" for news in random.sample(sample_news, 15)]
+    # Add some curated recent headlines if RSS fails (as fallback)
+    if len(news_items) < 30:
+        recent_headlines = [
+            "RBI keeps repo rate unchanged at 6.5% in latest policy meeting",
+            "Sensex crosses 75,000 mark for first time, Nifty above 22,700",
+            "Gold prices hit record high of ₹74,000 per 10 grams in India",
+            "India's GDP growth forecast revised to 7.5% for FY25 by IMF",
+            "Rupee strengthens to 82.45 against US dollar",
+            "SEBI tightens norms for algo trading to protect retail investors",
+            "FPIs invest ₹20,000 crore in Indian equities in April",
+            "India's forex reserves rise to $645 billion, near all-time high",
+            "Tata Motors reports 18% growth in Q4 EV sales",
+            "Reliance Jio announces 5G rollout in 100 more cities",
+            "Adani Group stocks recover after Hindenburg report resolution",
+            "India's manufacturing PMI rises to 59.1 in April, highest in 3 years",
+            "Bitcoin surges past $70,000 amid ETF inflows and halving event",
+            "US Fed signals possible rate cuts later this year",
+            "Oil prices rise as Middle East tensions escalate",
+            "China's economy grows 5.3% in Q1, beats expectations",
+            "Nvidia stock hits record high on AI chip demand",
+            "Tesla announces new affordable EV models coming in 2025",
+            "Apple invests $1 billion in India manufacturing expansion",
+            "Microsoft's AI push drives record quarterly revenue",
+            "Amazon Web Services announces $10 billion India investment",
+            "Google parent Alphabet announces first-ever dividend",
+            "Meta reports strong Q1 earnings with 27% revenue growth",
+            "India's retail inflation eases to 4.85% in March",
+            "GST collections hit record ₹2.1 lakh crore in April",
+            "India's unemployment rate falls to 6.7% in Q1 2024",
+            "LIC reports 15% growth in premium income for FY24",
+            "SBI raises FD interest rates by 50 basis points",
+            "HDFC Bank reports 20% growth in net profit for Q4",
+            "ICICI Bank announces 1:1 bonus share issue"
+        ]
+        news_items.extend(recent_headlines)
+    
+    return random.sample(news_items, min(30, len(news_items)))
 
 # --- Session State ---
 if 'financial_data' not in st.session_state:
@@ -120,7 +143,7 @@ if 'achievements' not in st.session_state:
     }
 
 if 'news_ticker' not in st.session_state:
-    st.session_state.news_ticker = fetch_financial_news()
+    st.session_state.news_ticker = fetch_latest_financial_news()
 
 # --- Helper Functions ---
 @st.cache_data(ttl=3600)
@@ -169,25 +192,56 @@ def create_cashflow_diagram():
         target = list(range(1, len(categories)+1))
         value = [income * (categories[cat]/100) for cat in categories]
         
-        fig = px.sankey(
+        fig = go.Figure(go.Sankey(
             node=dict(label=labels, pad=15, thickness=20),
             link=dict(source=source, target=target, value=value),
             orientation="h",
-            height=500
-        )
+            valueformat=".0f",
+            valuesuffix="₹"
+        ))
         
         fig.update_layout(
             title_text="Monthly Cash Flow Visualization",
             font=dict(size=12, color="white"),
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
-            margin=dict(t=50, l=0, r=0, b=0)
+            margin=dict(t=50, l=0, r=0, b=0),
+            height=500
         )
         
         return fig
     except Exception as e:
         st.error(f"Error creating cashflow diagram: {str(e)}")
         return None
+
+def create_savings_gauge(savings_rate):
+    """Create a gauge chart for savings rate using plotly.graph_objects"""
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=savings_rate,
+        domain={'x': [0, 1], 'y': [0, 1]},
+        title={'text': "Savings Rate Progress"},
+        gauge={
+            'axis': {'range': [0, 50]},
+            'steps': [
+                {'range': [0, 10], 'color': "red"},
+                {'range': [10, 20], 'color': "orange"},
+                {'range': [20, 50], 'color': "green"}
+            ],
+            'threshold': {
+                'line': {'color': "white", 'width': 4},
+                'thickness': 0.75,
+                'value': savings_rate
+            }
+        }
+    ))
+    
+    fig.update_layout(
+        margin=dict(t=50, b=10),
+        height=300
+    )
+    
+    return fig
 
 def calculate_goal_forecast(target, current, deadline):
     try:
@@ -280,15 +334,22 @@ def local_css(file_name):
             border-radius: 5px;
             margin-bottom: 1rem;
             overflow: hidden;
+            white-space: nowrap;
         }
         
-        .news-item {
-            white-space: nowrap;
+        .news-container {
+            display: inline-block;
+            padding-left: 100%;
             animation: ticker 30s linear infinite;
         }
         
+        .news-item {
+            display: inline-block;
+            padding-right: 2rem;
+        }
+        
         @keyframes ticker {
-            0% { transform: translateX(100%); }
+            0% { transform: translateX(0); }
             100% { transform: translateX(-100%); }
         }
         
@@ -315,6 +376,10 @@ def local_css(file_name):
             .dashboard-header {
                 flex-direction: column;
             }
+            
+            .news-item {
+                font-size: 0.8rem;
+            }
         }
         </style>
         ''', unsafe_allow_html=True)
@@ -323,11 +388,11 @@ local_css("style.css")
 
 # --- Main App ---
 def main():
-    # --- News Ticker ---
-    st.markdown(f'''
+    # --- Enhanced News Ticker ---
+    st.markdown('''
     <div class="news-ticker">
-        <div class="news-item">
-            {' • '.join(st.session_state.news_ticker)}
+        <div class="news-container">
+            {'<span class="news-item"> • </span>'.join([f'<span class="news-item">{news}</span>' for news in st.session_state.news_ticker])}
         </div>
     </div>
     ''', unsafe_allow_html=True)
@@ -400,13 +465,13 @@ def main():
             st.markdown("""
             <div class="info-box">
                 <strong>Pro Tip:</strong> Ask about budgeting strategies, investment options, or retirement planning. 
-                Try "How should I allocate my salary?" or "Best SIP plans for 2023"
+                Try "How should I allocate my salary?" or "Best SIP plans for 2024"
             </div>
             """, unsafe_allow_html=True)
         
         with col2:
             if st.button("🔄 Refresh News", help="Update financial news ticker"):
-                st.session_state.news_ticker = fetch_financial_news()
+                st.session_state.news_ticker = fetch_latest_financial_news()
                 st.rerun()
         
         if "messages" not in st.session_state:
@@ -474,25 +539,7 @@ def main():
                 cols[1].metric("Savings Rate", f"{savings_rate:.1f}%")
                 
                 # Visual gauge for savings rate
-                gauge = px.indicator(
-                    mode="gauge+number",
-                    value=savings_rate,
-                    domain={'x': [0, 1], 'y': [0, 1]},
-                    title="Savings Rate Progress",
-                    gauge={
-                        'axis': {'range': [0, 50]},
-                        'steps': [
-                            {'range': [0, 10], 'color': "red"},
-                            {'range': [10, 20], 'color': "orange"},
-                            {'range': [20, 50], 'color': "green"}
-                        ],
-                        'threshold': {
-                            'line': {'color': "white", 'width': 4},
-                            'thickness': 0.75,
-                            'value': savings_rate
-                        }
-                    }
-                )
+                gauge = create_savings_gauge(savings_rate)
                 st.plotly_chart(gauge, use_container_width=True)
 
         with col2:
