@@ -287,26 +287,28 @@ def main():
             if ticker:
                 data = get_market_data(ticker)
                 st.line_chart(data['Close'])
+
     # --- Learning Center Tab ---
     with tabs[4]:
-    st.header("📚 Interactive Learning Hub")
-    
-    with st.expander("💰 Financial Simulators", expanded=True):
-        tab1, tab2 = st.tabs(["Compound Growth", "Debt Payoff"])
+        st.header("📚 Interactive Learning Hub")
         
-        with tab1:
-            years = st.slider("Investment Horizon (years)", 1, 40, 10)
-            monthly = st.number_input("Monthly Contribution (₹)", 1000, 100000, 5000)
-            rate = st.slider("Expected Return (%)", 1, 20, 10)
-            future_value = monthly * (((1 + rate/100/12)**(years*12) - 1) / (rate/100/12))  # Fixed parentheses
-            st.metric("Future Value", f"₹{future_value:,.2f}")
-        
-        with tab2:
-            debt = st.number_input("Debt Amount (₹)", 1000, 10000000, 100000)
-            interest = st.slider("Interest Rate (%)", 1, 30, 15)
-            payment = st.number_input("Monthly Payment (₹)", 1000, 100000, 5000)
-            months = -np.log(1 - debt*(interest/100/12)/payment) / np.log(1 + interest/100/12)
-            st.metric("Payoff Period", f"{months//12:.0f} years {months%12:.0f} months")
+        with st.expander("💰 Financial Simulators", expanded=True):
+            tab1, tab2 = st.tabs(["Compound Growth", "Debt Payoff"])
+            
+            with tab1:
+                years = st.slider("Investment Horizon (years)", 1, 40, 10)
+                monthly = st.number_input("Monthly Contribution (₹)", 1000, 100000, 5000)
+                rate = st.slider("Expected Return (%)", 1, 20, 10)
+                future_value = monthly * (((1 + rate/100/12)**(years*12) - 1) / (rate/100/12))
+                st.metric("Future Value", f"₹{future_value:,.2f}")
+            
+            with tab2:
+                debt = st.number_input("Debt Amount (₹)", 1000, 10000000, 100000)
+                interest = st.slider("Interest Rate (%)", 1, 30, 15)
+                payment = st.number_input("Monthly Payment (₹)", 1000, 100000, 5000)
+                months = -np.log(1 - debt*(interest/100/12)/payment) / np.log(1 + interest/100/12)
+                st.metric("Payoff Period", f"{months//12:.0f} years {months%12:.0f} months")
+
 
 # --- Run the App ---
 if __name__ == "__main__":
