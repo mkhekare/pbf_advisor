@@ -588,11 +588,10 @@ def main():
                     )    
                 
                 # Calculate investment growth percentage
-                investment_growth = 0.0
-                total_invested = sum(inv['amount'] for inv in st.session_state.financial_data['investments'])
-                if total_invested > 0:
-                investment_growth = ((total_investments - total_invested) / total_invested) * 100
-                
+investment_growth = 0.0
+    total_invested = sum(inv['amount'] for inv in st.session_state.financial_data['investments'])
+    if total_invested > 0:
+        investment_growth = ((total_investments - total_invested) / total_invested) * 100                
                 # Display metrics
                 cols = st.columns(3)
                 cols[0].metric("Total Invested", format_currency(total_invested))
