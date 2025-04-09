@@ -2,15 +2,15 @@ credentials:
   usernames:
     user1:
       email: user1@example.com
-      name: admin
-      password: abc123
+      name: John Doe
+      password: abc123  # Replace with hashed password
     user2:
       email: user2@example.com
       name: Jane Smith
-      password: xyz456  # To be replaced with hashed password
+      password: xyz456  # Replace with hashed password
 cookie:
   name: wealthwise_auth
-  key: your-secret-key-for-cookie-encryption  # Replace with a random secret key
+  key: your-secret-key-for-cookie-encryption  # Replace with random secret key
   expiry_days: 30
 preauthorized:
   emails:
