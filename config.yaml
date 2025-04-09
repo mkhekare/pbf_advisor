@@ -1,10 +1,17 @@
 credentials:
-  username: admin
-  password: password
+  usernames:
+    user1:
+      email: user1@example.com
+      name: admin
+      password: abc123
+    user2:
+      email: user2@example.com
+      name: Jane Smith
+      password: xyz456  # To be replaced with hashed password
 cookie:
-  name: your_cookie_name
-  key: your_cookie_key
+  name: wealthwise_auth
+  key: your-secret-key-for-cookie-encryption  # Replace with a random secret key
   expiry_days: 30
 preauthorized:
-  - some_user
-  - another_user
+  emails:
+    - authorized_user@example.com
