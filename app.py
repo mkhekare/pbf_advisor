@@ -587,19 +587,17 @@ def main():
                         st.session_state.financial_data['expenses']
                     )    
                 
-                # Calculate investment growth percentage
-investment_growth = 0.0
-total_invested = sum(inv['amount'] for inv in st.session_state.financial_data['investments'])
-
-if total_invested > 0:
-    investment_growth = ((total_investments - total_invested) / total_invested) * 100
-
-
-                # Display metrics
-                cols = st.columns(3)
-                cols[0].metric("Total Invested", format_currency(total_invested))
-                cols[1].metric("Current Value", format_currency(total_current))
-                cols[2].metric("Overall Return", f"{overall_return:.2f}%")
+                # Calculate investment growth percentage  
+                investment_growth = 0.0  
+                total_invested = sum(inv['amount'] for inv in st.session_state.financial_data['investments'])  
+                
+                if total_invested > 0:  
+                    investment_growth = ((total_current - total_invested) / total_invested) * 100  # Fixed variable name typo  
+                    # Display metrics  
+                    cols = st.columns(3)  
+                    cols[0].metric("Total Invested", format_currency(total_invested))  
+                    cols[1].metric("Current Value", format_currency(total_current))  
+                    cols[2].metric("Overall Return", f"{overall_return:.2f}%")
                 
                 # Display investments in a nice dataframe
                 inv_df = pd.DataFrame(st.session_state.financial_data['investments'])
