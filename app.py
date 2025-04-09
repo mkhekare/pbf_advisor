@@ -127,57 +127,67 @@ if 'news_ticker' not in st.session_state:
 def get_market_data(ticker):
     try:
         return yf.Ticker(ticker).history(period="1mo")
-    except:
+    except Exception as e:
+        st.warning(f"Error fetching market data: {str(e)}")
         return pd.DataFrame()
 
 def get_finance_response(text_input):
     try:
-        model = genai.GenerativeModel("gemini-1.5-pro")
+        model = genai.GenerativeModel("gemini-pro")
         prompt = f'''You are WealthWise AI, an advanced financial advisor. Provide detailed, personalized advice including:
-- Contextual chat history: {st.session_state.chat_context[-3:]}
+- Contextual chat history: {st.session_state.chat_context[-3:] if st.session_state.chat_context else 'No context'}
 - Current financial data: {st.session_state.financial_data}
 - Question: {text_input}'''
         
         with st.spinner("🧠 Analyzing your financial query..."):
             response = model.generate_content(prompt)
-            st.session_state.chat_context.append(response.text)
+            if st.session_state.chat_context is not None:
+                st.session_state.chat_context.append(response.text)
             return response.text
     except Exception as e:
         return f"❌ Error processing your request: {str(e)}"
 
 def calculate_savings_metrics(income, expenses):
-    savings = float(income) - float(expenses)
-    savings_rate = (savings / float(income)) * 100 if income > 0 else 0.0
-    return savings, savings_rate
+    try:
+        savings = float(income) - float(expenses)
+        savings_rate = (savings / float(income)) * 100 if income > 0 else 0.0
+        return savings, savings_rate
+    except Exception as e:
+        st.error(f"Error calculating savings metrics: {str(e)}")
+        return 0.0, 0.0
 
 def create_cashflow_diagram():
-    income = st.session_state.financial_data['income']
-    categories = st.session_state.financial_data['budget_categories']
-    
-    if income == 0:
+    try:
+        income = st.session_state.financial_data['income']
+        categories = st.session_state.financial_data['budget_categories']
+        
+        if income == 0:
+            return None
+        
+        labels = ["Income"] + list(categories.keys())
+        source = [0] * len(categories)
+        target = list(range(1, len(categories)+1))
+        value = [income * (categories[cat]/100) for cat in categories]
+        
+        fig = px.sankey(
+            node=dict(label=labels, pad=15, thickness=20),
+            link=dict(source=source, target=target, value=value),
+            orientation="h",
+            height=500
+        )
+        
+        fig.update_layout(
+            title_text="Monthly Cash Flow Visualization",
+            font=dict(size=12, color="white"),
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            margin=dict(t=50, l=0, r=0, b=0)
+        )
+        
+        return fig
+    except Exception as e:
+        st.error(f"Error creating cashflow diagram: {str(e)}")
         return None
-    
-    labels = ["Income"] + list(categories.keys())
-    source = [0] * len(categories)
-    target = list(range(1, len(categories)+1))
-    value = [income * (categories[cat]/100) for cat in categories]
-    
-    fig = px.sankey(
-        node=dict(label=labels, pad=15, thickness=20),
-        link=dict(source=source, target=target, value=value),
-        orientation="h",
-        height=500
-    )
-    
-    fig.update_layout(
-        title_text="Monthly Cash Flow Visualization",
-        font=dict(size=12, color="white"),
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
-        margin=dict(t=50, l=0, r=0, b=0)
-    )
-    
-    return fig
 
 def calculate_goal_forecast(target, current, deadline):
     try:
@@ -189,21 +199,26 @@ def calculate_goal_forecast(target, current, deadline):
             "required_monthly": required_monthly,
             "completion_probability": completion_prob
         }
-    except:
+    except Exception as e:
+        st.error(f"Error calculating goal forecast: {str(e)}")
         return {"required_monthly": 0, "completion_probability": 0}
 
 def update_investment_values():
-    for inv in st.session_state.financial_data['investments']:
-        if inv['type'] in ["Stocks", "ETF"] and 'ticker' in inv:
-            try:
+    try:
+        for inv in st.session_state.financial_data['investments']:
+            if inv['type'] in ["Stocks", "ETF"] and 'ticker' in inv:
                 data = get_market_data(inv['ticker'])
-                if not data.empty:
+                if not data.empty and 'Close' in data:
                     inv['current_value'] = data['Close'].iloc[-1] * inv.get('shares', 1)
-            except:
-                pass
+    except Exception as e:
+        st.error(f"Error updating investment values: {str(e)}")
 
 def format_currency(value):
-    return f"₹{value:,.2f}" if isinstance(value, (int, float)) else value
+    try:
+        return f"₹{value:,.2f}" if isinstance(value, (int, float)) else value
+    except Exception as e:
+        st.error(f"Error formatting currency: {str(e)}")
+        return str(value)
 
 # --- Custom CSS ---
 def local_css(file_name):
@@ -213,7 +228,94 @@ def local_css(file_name):
     except:
         st.markdown('''
         <style>
-        /* Your CSS styles here */
+        /* Main Styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+            background-color: #f5f5f5;
+        }
+        
+        /* Header Styles */
+        .header {
+            padding: 1rem 0;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 1.5rem;
+        }
+        
+        /* Metric Cards */
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            gap: 1rem;
+        }
+        
+        .metric-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            flex: 1;
+            text-align: center;
+        }
+        
+        .metric-card h3 {
+            font-size: 1rem;
+            color: #666;
+            margin: 0 0 0.5rem 0;
+        }
+        
+        .metric-card p {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 0;
+            color: #2c3e50;
+        }
+        
+        /* News Ticker */
+        .news-ticker {
+            background: #2c3e50;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+        
+        .news-item {
+            white-space: nowrap;
+            animation: ticker 30s linear infinite;
+        }
+        
+        @keyframes ticker {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+        
+        /* Info Box */
+        .info-box {
+            background: #e3f2fd;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border-left: 4px solid #2196f3;
+        }
+        
+        /* Footer */
+        .footer {
+            margin-top: 2rem;
+            padding: 1rem 0;
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        /* Responsive Adjustments */
+        @media (max-width: 768px) {
+            .dashboard-header {
+                flex-direction: column;
+            }
+        }
         </style>
         ''', unsafe_allow_html=True)
 
@@ -222,7 +324,7 @@ local_css("style.css")
 # --- Main App ---
 def main():
     # --- News Ticker ---
-    st.markdown('''
+    st.markdown(f'''
     <div class="news-ticker">
         <div class="news-item">
             {' • '.join(st.session_state.news_ticker)}
@@ -235,8 +337,8 @@ def main():
     with col1:
         st.markdown("""
         <div class="header">
-            <h1 style="color:white;">WealthWise AI</h1>
-            <p class="subtitle" style="color:white;">Your Intelligent Personal Finance Ecosystem</p>
+            <h1 style="color:#2c3e50;">WealthWise AI</h1>
+            <p class="subtitle" style="color:#666;">Your Intelligent Personal Finance Ecosystem</p>
         </div>
         """, unsafe_allow_html=True)
     with col2:
@@ -245,7 +347,9 @@ def main():
     
     # Calculate metrics
     update_investment_values()
-    total_investments = sum(inv['current_value'] for inv in st.session_state.financial_data['investments'])
+    total_investments = sum(inv.get('current_value', inv.get('amount', 0)) 
+                         for inv in st.session_state.financial_data['investments'])
+    
     savings, savings_rate = calculate_savings_metrics(
         st.session_state.financial_data['income'],
         st.session_state.financial_data['expenses']
@@ -253,7 +357,7 @@ def main():
     
     # Calculate investment growth percentage
     investment_growth = 0.0
-    total_invested = sum(inv['amount'] for inv in st.session_state.financial_data['investments'])
+    total_invested = sum(inv.get('amount', 0) for inv in st.session_state.financial_data['investments'])
     if total_invested > 0:
         investment_growth = ((total_investments - total_invested) / total_invested) * 100
 
@@ -405,7 +509,8 @@ def main():
                             f"{category} (%)",
                             min_value=0,
                             max_value=100,
-                            value=int(categories[category]/st.session_state.financial_data['income']*100 if st.session_state.financial_data['income'] > 0 else 0),
+                            value=int(categories[category]/st.session_state.financial_data['income']*100 
+                                   if st.session_state.financial_data['income'] > 0 else 0),
                             key=f"budget_{category}"
                         )
                         categories[category] = percent
@@ -576,28 +681,16 @@ def main():
                 st.subheader("📊 Portfolio Performance")
                 
                 # Calculate metrics
-                total_invested = sum(inv['amount'] for inv in st.session_state.financial_data['investments'])
-                total_current = sum(inv['current_value'] for inv in st.session_state.financial_data['investments'])
+                total_invested = sum(inv.get('amount', 0) for inv in st.session_state.financial_data['investments'])
+                total_current = sum(inv.get('current_value', inv.get('amount', 0)) 
+                                 for inv in st.session_state.financial_data['investments'])
                 overall_return = ((total_current - total_invested) / total_invested * 100) if total_invested > 0 else 0
 
-                update_investment_values()
-                total_investments = sum(inv['current_value'] for inv in st.session_state.financial_data['investments'])
-                savings, savings_rate = calculate_savings_metrics(
-                        st.session_state.financial_data['income'],
-                        st.session_state.financial_data['expenses']
-                    )    
-                
-                # Calculate investment growth percentage  
-                investment_growth = 0.0  
-                total_invested = sum(inv['amount'] for inv in st.session_state.financial_data['investments'])  
-                
-                if total_invested > 0:  
-                    investment_growth = ((total_current - total_invested) / total_invested) * 100  # Fixed variable name typo  
-                    # Display metrics  
-                    cols = st.columns(3)  
-                    cols[0].metric("Total Invested", format_currency(total_invested))  
-                    cols[1].metric("Current Value", format_currency(total_current))  
-                    cols[2].metric("Overall Return", f"{overall_return:.2f}%")
+                # Display metrics
+                cols = st.columns(3)
+                cols[0].metric("Total Invested", format_currency(total_invested))
+                cols[1].metric("Current Value", format_currency(total_current))
+                cols[2].metric("Overall Return", f"{overall_return:.2f}%")
                 
                 # Display investments in a nice dataframe
                 inv_df = pd.DataFrame(st.session_state.financial_data['investments'])
@@ -688,7 +781,8 @@ def main():
                 growth_data = pd.DataFrame({
                     'Year': range(1, years+1),
                     'Value': [monthly * (((1 + rate/100/12)**(y*12) - 1) / (rate/100/12)) * (1 + rate/100/12) for y in range(1, years+1)]
-                })            
+                })
+                st.line_chart(growth_data.set_index('Year'))
             
             elif calc_type == "EMI Calculator":
                 principal = st.number_input("Loan Amount (₹)", 1000, 10000000, 1000000)
@@ -774,13 +868,17 @@ def main():
 
 # --- Run the App ---
 if __name__ == "__main__":
-    main()
-    
-    # --- Footer ---
-    st.markdown("---")
-    st.markdown("""
-    <div class="footer">
-        <p>💰 WealthWise AI • Real-time Financial Insights • Personalized Recommendations</p>
-        <p>Data updates every 15 minutes • Last refreshed: {datetime.now().strftime('%Y-%m-%d %H:%M')}</p>
-    </div>
-    """, unsafe_allow_html=True)
+    try:
+        main()
+        
+        # --- Footer ---
+        st.markdown("---")
+        st.markdown(f"""
+        <div class="footer">
+            <p>💰 WealthWise AI • Real-time Financial Insights • Personalized Recommendations</p>
+            <p>Data updates every 15 minutes • Last refreshed: {datetime.now().strftime('%Y-%m-%d %H:%M')}</p>
+        </div>
+        """, unsafe_allow_html=True)
+    except Exception as e:
+        st.error(f"An error occurred: {str(e)}")
+        st.stop()
