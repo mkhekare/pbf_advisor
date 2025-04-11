@@ -15,4 +15,3 @@ beautifulsoup4
 streamlit-lottie
 feedparser
 html
-python-3.9.13
