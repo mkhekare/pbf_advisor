@@ -14,6 +14,3 @@ requests
 beautifulsoup4
 streamlit-lottie
 feedparser
-
-git config --global user.email "mkhekare@gmail.com"
-git config --global user.name "Mayur Khekare"
