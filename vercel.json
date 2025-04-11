@@ -7,15 +7,8 @@
       "config": {
         "runtime": "python3.9",
         "maxLambdaSize": "250mb",
-        "includeFiles": ["app.py"],
-        "excludeFiles": "**/__pycache__/**"
+        "includeFiles": ["app.py", ".env"]
       }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "app.py"
     }
   ]
 }

@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-import google.generativeai as genai
+from langchain.llms import GooglePalm 
 from datetime import datetime, timedelta
 import time
 import os

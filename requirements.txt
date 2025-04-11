@@ -1,8 +1,8 @@
 streamlit==1.29.0
-langchain-google-genai==0.0.11
+langchain==0.1.0  # Core LangChain
+google-generativeai==0.3.2
 python-dotenv==1.0.0
-pandas==2.1.4
-google-generativeai==0.3.2  # Correct version
+pandas==1.5.3  # Downgraded for better compatibility
 plotly==5.18.0
 PyYAML==6.0.1
 requests==2.31.0
