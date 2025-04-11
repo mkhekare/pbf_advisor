@@ -24,11 +24,17 @@ st.set_page_config(
 )
 
 # --- Load API Key ---
-GOOGLE_API_KEY = st.secrets.get("GOOGLE_API_KEY", os.getenv("GOOGLE_API_KEY"))
-
-if not GOOGLE_API_KEY:
-    st.error("🚫 Google API key not found. Please set it in secrets.toml or environment variables.")
-    st.stop()
+GOOGLE_API_KEY = secrets["GOOGLE_API_KEY"]
+except (ImportError, KeyError, FileNotFoundError):
+    # Fallback to environment variable if secrets not found
+    GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+    if not GOOGLE_API_KEY:
+        st.error("""
+            🚫 Google API key not found. Please either:
+            1. Create a .streamlit/secrets.toml file with your key, or
+            2. Set it as an environment variable
+            """)
+        st.stop()
 
 # Configure Gemini API
 genai.configure(api_key=GOOGLE_API_KEY)
