@@ -45,6 +45,11 @@ if not GOOGLE_API_KEY:
 # Configure Gemini API
 genai.configure(api_key=GOOGLE_API_KEY)
 
+# Add to app.py
+def get_stock_data(ticker):
+    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
+    return requests.get(url).json()['chart']['result'][0]
+
 # --- Animation Setup ---
 def load_lottieurl(url: str):
     try:

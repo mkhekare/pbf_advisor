@@ -1,17 +1,12 @@
-langchain
 streamlit==1.29.0
-langchain-google-genai
-python-dotenv
-pandas
+langchain-google-genai==0.0.11
+python-dotenv==1.0.0
+pandas==2.1.4  # Newer versions are too large
 google-generativeai==0.3.2
 plotly==5.18.0
-PyYAML
-streamlit-authenticator
-yfinance==0.1.70  # Downgraded for compatibility
-plaid-python
+PyYAML==6.0.1
 requests==2.31.0
 beautifulsoup4==4.12.2
 feedparser==6.0.10
 streamlit-lottie==0.0.5
-html5lib==1.1
-protobuf==3.20.3  # Required for google-generativeai
+protobuf==3.20.3
