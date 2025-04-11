@@ -5,7 +5,7 @@ import google.generativeai as genai
 from datetime import datetime, timedelta
 import time
 import os
-import html
+import html.parser
 import yfinance as yf
 import numpy as np
 import requests
