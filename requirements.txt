@@ -1,16 +1,17 @@
 langchain
-streamlit
+streamlit==1.29.0
 langchain-google-genai
 python-dotenv
 pandas
-google-generativeai>=0.8.4
-plotly
-google-generativeai
+google-generativeai==0.3.2
+plotly==5.18.0
 PyYAML
 streamlit-authenticator
-yfinance>=0.2
+yfinance==0.1.70  # Downgraded for compatibility
 plaid-python
-requests
-beautifulsoup4
-streamlit-lottie
-feedparser
+requests==2.31.0
+beautifulsoup4==4.12.2
+feedparser==6.0.10
+streamlit-lottie==0.0.5
+html5lib==1.1
+protobuf==3.20.3  # Required for google-generativeai
