@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import plotly.graph_objects as go  # Changed from plotly.express
+import plotly.graph_objects as go
 import google.generativeai as genai
 from datetime import datetime, timedelta
 import time
@@ -13,7 +13,7 @@ from bs4 import BeautifulSoup
 import random
 import json
 from streamlit_lottie import st_lottie
-import feedparser  # For RSS feeds
+import feedparser
 
 # --- App Configuration ---
 st.set_page_config(
@@ -35,10 +35,13 @@ genai.configure(api_key=GOOGLE_API_KEY)
 
 # --- Animation Setup ---
 def load_lottieurl(url: str):
-    r = requests.get(url)
-    if r.status_code != 200:
+    try:
+        r = requests.get(url)
+        if r.status_code != 200:
+            return None
+        return r.json()
+    except:
         return None
-    return r.json()
 
 lottie_animation = load_lottieurl("https://assets9.lottiefiles.com/packages/lf20_6e0QCr.json")
 
@@ -65,7 +68,7 @@ def fetch_latest_financial_news():
         try:
             feed = feedparser.parse(source["url"])
             for entry in feed.entries[:10]:  # Get top 10 from each source
-                if "finance" in entry.title.lower() or "stock" in entry.title.lower() or "market" in entry.title.lower():
+                if any(term in entry.title.lower() for term in ["finance", "stock", "market", "economy", "investment"]):
                     news_items.append(f"{source['name']}: {entry.title}")
         except Exception as e:
             st.warning(f"Could not fetch news from {source['name']}: {str(e)}")
@@ -108,6 +111,7 @@ def fetch_latest_financial_news():
         news_items.extend(recent_headlines)
     
     return random.sample(news_items, min(30, len(news_items)))
+
 # --- News Ticker Display Function ---
 def display_news_ticker():
     """Display the scrolling news ticker"""
@@ -167,45 +171,46 @@ def display_news_ticker():
         st.session_state.news_ticker = fetch_latest_financial_news()
         st.rerun()
 
-# --- In your main app ---
-def main():
-    display_news_ticker()
-# --- Session State ---
-if 'financial_data' not in st.session_state:
-    st.session_state.financial_data = {
-        'income': 0.0,
-        'expenses': 0.0,
-        'savings': 0.0,
-        'goals': [],
-        'transactions': [],
-        'budget_categories': {
-            'Housing': 0.0,
-            'Food': 0.0,
-            'Transportation': 0.0,
-            'Utilities': 0.0,
-            'Healthcare': 0.0,
-            'Entertainment': 0.0,
-            'Education': 0.0,
-            'Savings': 0.0,
-            'Investments': 0.0,
-            'Debt Repayment': 0.0,
-            'Other': 0.0
-        },
-        'investments': []
-    }
+# --- Initialize Session State ---
+def initialize_session_state():
+    if 'financial_data' not in st.session_state:
+        st.session_state.financial_data = {
+            'income': 0.0,
+            'expenses': 0.0,
+            'savings': 0.0,
+            'goals': [],
+            'transactions': [],
+            'budget_categories': {
+                'Housing': 0.0,
+                'Food': 0.0,
+                'Transportation': 0.0,
+                'Utilities': 0.0,
+                'Healthcare': 0.0,
+                'Entertainment': 0.0,
+                'Education': 0.0,
+                'Savings': 0.0,
+                'Investments': 0.0,
+                'Debt Repayment': 0.0,
+                'Other': 0.0
+            },
+            'investments': []
+        }
 
-if 'chat_context' not in st.session_state:
-    st.session_state.chat_context = []
+    if 'chat_context' not in st.session_state:
+        st.session_state.chat_context = []
 
-if 'achievements' not in st.session_state:
-    st.session_state.achievements = {
-        'budget_set': False,
-        'first_investment': False,
-        'savings_goal': False
-    }
+    if 'achievements' not in st.session_state:
+        st.session_state.achievements = {
+            'budget_set': False,
+            'first_investment': False,
+            'savings_goal': False
+        }
 
-if 'news_ticker' not in st.session_state:
-    st.session_state.news_ticker = fetch_latest_financial_news()
+    if 'news_ticker' not in st.session_state:
+        st.session_state.news_ticker = fetch_latest_financial_news()
+
+    if 'messages' not in st.session_state:
+        st.session_state.messages = []
 
 # --- Helper Functions ---
 @st.cache_data(ttl=3600)
@@ -322,7 +327,7 @@ def calculate_goal_forecast(target, current, deadline):
 def update_investment_values():
     try:
         for inv in st.session_state.financial_data['investments']:
-            if inv['type'] in ["Stocks", "ETF"] and 'ticker' in inv:
+            if inv['type'] in ["Stocks", "ETF"] and 'ticker' in inv and inv['ticker']:
                 data = get_market_data(inv['ticker'])
                 if not data.empty and 'Close' in data:
                     inv['current_value'] = data['Close'].iloc[-1] * inv.get('shares', 1)
@@ -446,20 +451,13 @@ def local_css(file_name):
         </style>
         ''', unsafe_allow_html=True)
 
-local_css("style.css")  
-
 # --- Main App ---
 def main():
+    initialize_session_state()
+    local_css("style.css")
+    
     # --- Enhanced News Ticker ---
-    ticker_html = """
-    <div class="news-ticker">
-        <div class="news-container">
-            {}
-        </div>
-    </div>
-    """.format(' • '.join([f'<span class="news-item">{html.escape(news)}</span>' for news in st.session_state.news_ticker]))
-
-    st.markdown(ticker_html, unsafe_allow_html=True)
+    display_news_ticker()
     
     # --- Header Section ---
     col1, col2 = st.columns([3, 1])
@@ -538,9 +536,6 @@ def main():
             if st.button("🔄 Refresh News", help="Update financial news ticker"):
                 st.session_state.news_ticker = fetch_latest_financial_news()
                 st.rerun()
-        
-        if "messages" not in st.session_state:
-            st.session_state.messages = []
         
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
