@@ -7,6 +7,8 @@
 
 Your intelligent personal finance assistant powered by AI and real-time market data.
 
+https://huggingface.co/spaces/mkhekare/investment_advisor
+
 <img width="1425" alt="Screenshot 2025-04-15 at 9 36 41 PM" src="https://github.com/user-attachments/assets/4b8c9466-d25a-4f22-8f38-7aaf3d775055" />
 
 
